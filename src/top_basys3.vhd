@@ -25,7 +25,17 @@ end top_basys3;
 architecture top_basys3_arch of top_basys3 is
 
     -- signal declarations
-    
+    signal w_slow_clk   : std_logic;
+    signal w_floor      : std_logic_vector(3 downto 0);
+    signal w_tdm_data   : std_logic_vector(3 downto 0);
+    signal w_tdm_sel    : std_logic_vector(3 downto 0);
+
+    -- resets
+    signal w_master_reset : std_logic;
+    signal w_clk_reset    : std_logic;
+    signal w_fsm_reset    : std_logic;
+    signal w_clkdiv_reset : std_logic;
+signal w_fsm_reset_combined : std_logic;
   
 	-- component declarations
     component sevenseg_decoder is
@@ -69,15 +79,60 @@ architecture top_basys3_arch of top_basys3 is
     end component clock_divider;
 	
 begin
-	-- PORT MAPS ----------------------------------------
-    	
-	
-	-- CONCURRENT STATEMENTS ----------------------------
-	
-	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
-	
-	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
-	
-	-- reset signals
+	-- RESET MAPPING
+	w_master_reset <= btnU;
+	w_clk_reset    <= btnL;
+	w_fsm_reset    <= btnR;
+	w_clkdiv_reset        <= w_master_reset or w_clk_reset;
+    w_fsm_reset_combined  <= w_master_reset or w_fsm_reset;
+
+	-- CLOCK DIVIDER (make slow clock)
+	u_clkdiv : clock_divider
+		generic map (
+			k_DIV => 5000000  -- adjust for visible speed
+		)
+		port map (
+			i_clk   => clk,
+			i_reset => w_clkdiv_reset,
+			o_clk   => w_slow_clk
+		);
+
+	-- ELEVATOR FSM
+	u_fsm : elevator_controller_fsm
+		port map (
+			i_clk      => w_slow_clk,
+			i_reset    => w_fsm_reset_combined,
+			is_stopped => sw(0),
+			go_up_down => sw(1),
+			o_floor    => w_floor
+		);
+
+	-- TDM (4-digit multiplexing)
+	-- show same floor on all digits
+	u_tdm : TDM4
+		port map (
+			i_clk   => clk,
+			i_reset => w_master_reset,
+			i_D3    => w_floor,
+			i_D2    => w_floor,
+			i_D1    => w_floor,
+			i_D0    => w_floor,
+			o_data  => w_tdm_data,
+			o_sel   => w_tdm_sel
+		);
+
+	-- 7seg decoder
+	u_7seg : sevenseg_decoder
+		port map (
+			i_Hex   => w_tdm_data,
+			o_seg_n => seg
+		);
+
+	-- outputS
+	an <= w_tdm_sel;
+
+	-- LEDS
+	led(15) <= w_slow_clk;   -- show slow clock
+	led(14 downto 0) <= (others => '0');
 	
 end top_basys3_arch;
