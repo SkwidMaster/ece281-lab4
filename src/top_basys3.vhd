@@ -26,6 +26,7 @@ architecture top_basys3_arch of top_basys3 is
 
     -- signal declarations
     signal w_slow_clk   : std_logic;
+    signal w_tdm_clk    : std_logic;
     signal w_floor      : std_logic_vector(3 downto 0);
     signal w_tdm_data   : std_logic_vector(3 downto 0);
     signal w_tdm_sel    : std_logic_vector(3 downto 0);
@@ -106,17 +107,27 @@ begin
 			go_up_down => sw(1),
 			o_floor    => w_floor
 		);
+		
+	u_tdm_clkdiv : clock_divider
+    generic map (
+        k_DIV => 50000  -- ~1 kHz (100MHz / (2*50000) = 1 kHz)
+    )
+    port map (
+        i_clk   => clk,
+        i_reset => w_clkdiv_reset,
+        o_clk   => w_tdm_clk
+    );
 
 	-- TDM (4-digit multiplexing)
 	-- show same floor on all digits
 	u_tdm : TDM4
 		port map (
-			i_clk   => clk,
+			i_clk   => w_tdm_clk,
 			i_reset => w_master_reset,
-			i_D3    => w_floor,
-			i_D2    => "1111",
-			i_D1    => w_floor,
-			i_D0    => "1111",
+			i_D0    => w_floor,
+			i_D1    => "1111",
+			i_D2    => w_floor,
+			i_D3    => "1111",
 			o_data  => w_tdm_data,
 			o_sel   => w_tdm_sel
 		);
