@@ -89,7 +89,7 @@ begin
 	-- CLOCK DIVIDER (make slow clock)
 	u_clkdiv : clock_divider
 		generic map (
-			k_DIV => 5000000  -- adjust for visible speed
+			k_DIV => 25000000  -- adjust for visible speed
 		)
 		port map (
 			i_clk   => clk,
@@ -114,9 +114,9 @@ begin
 			i_clk   => clk,
 			i_reset => w_master_reset,
 			i_D3    => w_floor,
-			i_D2    => w_floor,
+			i_D2    => "1111",
 			i_D1    => w_floor,
-			i_D0    => w_floor,
+			i_D0    => "1111",
 			o_data  => w_tdm_data,
 			o_sel   => w_tdm_sel
 		);
